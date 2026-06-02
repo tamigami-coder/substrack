@@ -13,29 +13,25 @@ export const authOptions: NextAuthOptions = {
           }),
         ]
       : []),
-    // 開発用: Google OAuth未設定時に使うテストログイン
-    ...(process.env.NODE_ENV === "development"
-      ? [
-          CredentialsProvider({
-            name: "テスト用ログイン",
-            credentials: {
-              email: { label: "メールアドレス", type: "email" },
-            },
-            async authorize(credentials) {
-              if (!credentials?.email) return null
-              const user = await prisma.user.upsert({
-                where: { email: credentials.email },
-                update: {},
-                create: {
-                  email: credentials.email,
-                  name: credentials.email.split("@")[0],
-                },
-              })
-              return { id: user.id, email: user.email, name: user.name }
-            },
-          }),
-        ]
-      : []),
+    // Google OAuth未設定時に使うテストログイン（開発・デモ用）
+    CredentialsProvider({
+      name: "テスト用ログイン",
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email) return null
+        const user = await prisma.user.upsert({
+          where: { email: credentials.email },
+          update: {},
+          create: {
+            email: credentials.email,
+            name: credentials.email.split("@")[0],
+          },
+        })
+        return { id: user.id, email: user.email, name: user.name }
+      },
+    }),
   ],
   session: {
     strategy: "jwt",
