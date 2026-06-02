@@ -11,6 +11,8 @@ import { Separator } from "@/components/ui/separator"
 
 function SignInForm() {
   const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get("callbackUrl") ?? "/"
@@ -18,8 +20,19 @@ function SignInForm() {
   const handleCredentials = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    await signIn("credentials", { email, callbackUrl })
-    setLoading(false)
+    setError("")
+    const result = await signIn("credentials", {
+      email,
+      password,
+      callbackUrl,
+      redirect: false,
+    })
+    if (result?.error) {
+      setError("メールアドレスまたはパスワードが正しくありません")
+      setLoading(false)
+    } else {
+      window.location.href = callbackUrl
+    }
   }
 
   return (
@@ -44,19 +57,34 @@ function SignInForm() {
       )}
       <form onSubmit={handleCredentials} className="space-y-3">
         <div className="space-y-1">
-          <Label htmlFor="email">メールアドレス（開発用）</Label>
+          <Label htmlFor="email">メールアドレス</Label>
           <Input
             id="email"
             type="email"
-            placeholder="test@example.com"
+            placeholder="your@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
         </div>
+        <div className="space-y-1">
+          <Label htmlFor="password">パスワード</Label>
+          <Input
+            id="password"
+            type="password"
+            placeholder="パスワードを入力"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && <p className="text-sm text-destructive">{error}</p>}
         <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? "ログイン中..." : "テストログイン"}
+          {loading ? "処理中..." : "ログイン / 新規登録"}
         </Button>
+        <p className="text-xs text-center text-muted-foreground">
+          初回ログイン時はアカウントが自動で作成されます
+        </p>
       </form>
     </CardContent>
   )
