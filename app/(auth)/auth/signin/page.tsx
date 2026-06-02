@@ -85,6 +85,9 @@ function SignInForm() {
         <p className="text-xs text-center text-muted-foreground">
           初回ログイン時はアカウントが自動で作成されます
         </p>
+        <p className="text-xs text-center text-yellow-600">
+          ※ 普段使っているパスワードは入力しないでください
+        </p>
       </form>
     </CardContent>
   )
