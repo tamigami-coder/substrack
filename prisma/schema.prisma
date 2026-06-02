@@ -88,17 +88,19 @@ model PushToken {
 }
 
 model Expense {
-  id        String   @id @default(cuid())
-  date      DateTime
-  amount    Float
-  merchant  String
-  category  String
-  memo      String?
-  source    String   @default("manual")
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  date        DateTime
+  billingDate DateTime @default(now())
+  amount      Float
+  merchant    String
+  category    String
+  memo        String?
+  source      String   @default("manual")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([date])
+  @@index([billingDate])
 }

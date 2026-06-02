@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { parseCSV } from "@/lib/csv-parser"
+import { parseCSV, detectBillingMonth } from "@/lib/csv-parser"
 import { categorizeMerchants } from "@/lib/categorize"
 import { prisma } from "@/lib/db"
 import type { ParsedTransaction } from "@/types/expense"
@@ -16,6 +16,7 @@ export async function POST(req: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer())
   const transactions = parseCSV(buffer)
+  const detectedBillingMonth = detectBillingMonth(buffer)
 
   if (transactions.length === 0) {
     return Response.json({ error: "取引データが読み取れませんでした" }, { status: 400 })
@@ -29,5 +30,5 @@ export async function POST(req: Request) {
     category: categoryMap[t.merchant] ?? "その他",
   }))
 
-  return Response.json({ transactions: result })
+  return Response.json({ transactions: result, detectedBillingMonth })
 }

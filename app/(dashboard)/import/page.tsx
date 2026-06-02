@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { EXPENSE_CATEGORIES } from "@/types/expense"
 import type { ParsedTransaction } from "@/types/expense"
-import { format } from "date-fns"
+import { format, addMonths } from "date-fns"
 import { ja } from "date-fns/locale"
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -44,6 +44,7 @@ export default function ImportPage() {
   const [loading, setLoading] = useState(false)
   const [transactions, setTransactions] = useState<ParsedTransaction[]>([])
   const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [billingMonth, setBillingMonth] = useState<string>("")
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith(".csv")) {
@@ -60,8 +61,9 @@ export default function ImportPage() {
         toast.error(err.error ?? "解析に失敗しました")
         return
       }
-      const { transactions: parsed } = await res.json()
+      const { transactions: parsed, detectedBillingMonth } = await res.json()
       setTransactions(parsed)
+      setBillingMonth(detectedBillingMonth || format(new Date(), "yyyy-MM"))
       setSelected(new Set(parsed.map((_: ParsedTransaction, i: number) => i)))
       setStep("review")
     } catch {
@@ -105,7 +107,7 @@ export default function ImportPage() {
       const res = await fetch("/api/import/csv/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transactions: toImport }),
+        body: JSON.stringify({ transactions: toImport, billingMonth }),
       })
       if (!res.ok) throw new Error()
       const { count } = await res.json()
@@ -202,17 +204,54 @@ export default function ImportPage() {
       {/* ステップ2: レビュー */}
       {step === "review" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {transactions.length}件を検出 / {selected.size}件選択中
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={() => setSelected(new Set(transactions.map((_, i) => i)))}>
-                全選択
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
-                全解除
-              </Button>
+          <div className="flex items-center justify-between flex-wrap gap-4 p-4 bg-muted/30 rounded-lg border">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-muted-foreground block">
+                インポート対象月（この月の支出として集計します）
+              </label>
+              <div className="flex items-center gap-2">
+                <Select value={billingMonth} onValueChange={(v) => v && setBillingMonth(v)}>
+                  <SelectTrigger className="w-[180px] bg-background">
+                    <SelectValue placeholder="対象月を選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(() => {
+                      const options = []
+                      const now = new Date()
+                      for (let i = -6; i <= 3; i++) {
+                        const d = addMonths(now, i)
+                        options.push({
+                          value: format(d, "yyyy-MM"),
+                          label: format(d, "yyyy年M月", { locale: ja }),
+                        })
+                      }
+                      return options.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))
+                    })()}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 ml-auto">
+              <div className="text-right">
+                <p className="text-sm font-medium">
+                  {transactions.length}件を検出
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {selected.size}件選択中
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelected(new Set(transactions.map((_, i) => i)))}>
+                  全選択
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setSelected(new Set())}>
+                  全解除
+                </Button>
+              </div>
             </div>
           </div>
 

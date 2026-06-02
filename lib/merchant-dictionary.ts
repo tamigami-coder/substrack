@@ -1,8 +1,14 @@
-// 正規化: 全角→半角、大文字統一
+// 正規化: 全角→半角、大文字統一、カタカナ表記ゆれ吸収
 function normalize(s: string): string {
   return s
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xfee0))
     .toUpperCase()
+    // ダッシュ・罫線系を長音符に統一（CSVエクスポートで化けるケース）
+    .replace(/[―‐－ｰ]/g, "ー")
+    // 分離した合成カタカナを1文字に統一（フア→ファ 等）
+    .replace(/ウ゛/g, "ヴ")
+    .replace(/フア/g, "ファ").replace(/フイ/g, "フィ").replace(/フエ/g, "フェ").replace(/フオ/g, "フォ")
+    .replace(/テイ/g, "ティ").replace(/デイ/g, "ディ").replace(/トウ/g, "トゥ")
     .replace(/\s+/g, "")
 }
 
@@ -45,13 +51,15 @@ const RAW_DICTIONARY: [string, string][] = [
   ["PSNOW", "サブスク"],
   ["XBOX", "サブスク"],
   ["GAMEPASS", "サブスク"],
-  ["STEAM", "サブスク"],
+  ["STEAM", "趣味・娯楽"],
   ["EPICGAMES", "サブスク"],
   // クラウド・生産性サブスク
   ["MICROSOFT 365", "サブスク"],
   ["MICROSOFT365", "サブスク"],
   ["OFFICE 365", "サブスク"],
   ["OFFICE365", "サブスク"],
+  ["GOOGLE PLAY", "趣味・娯楽"],
+  ["GOOGLEPLAY", "趣味・娯楽"],
   ["GOOGLE ONE", "サブスク"],
   ["GOOGLEONE", "サブスク"],
   ["GOOGLE WORKSPACE", "サブスク"],

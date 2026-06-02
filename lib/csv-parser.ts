@@ -87,21 +87,30 @@ function parseAmount(s: string): number {
 }
 
 // ヘッダーなし形式（三菱UFJカード等）をカラム位置で解析
-// 形式: 日付, 店舗名, 利用金額, ...
+// 形式A: 日付, 店舗名, 利用金額, ...（index 2が金額）
+// 形式B: 日付, 店舗名, 利用区分, 支払方法, -, 請求月, 金額, ...（index 6が金額）
 function parseNoHeaderFormat(rows: string[][]): ParsedTransaction[] {
   const results: ParsedTransaction[] = []
 
   for (const cols of rows) {
     const dateStr = (cols[0] ?? "").trim()
     const merchant = (cols[1] ?? "").trim()
-    const amountStr = (cols[2] ?? "").trim()
 
     // 日付っぽくない行（1行目のカード情報・合計行など）をスキップ
     if (!DATE_RE.test(dateStr)) continue
     if (!merchant) continue
 
-    const amount = parseAmount(amountStr)
-    // 0円・返品（マイナス）はスキップ
+    // index 2を試し、0なら後続列を順にスキャンして最初の正値を金額とする
+    let amount = parseAmount((cols[2] ?? "").trim())
+    if (amount <= 0) {
+      for (let i = 3; i < cols.length; i++) {
+        const v = (cols[i] ?? "").trim()
+        if (!v) continue
+        const n = parseAmount(v)
+        if (n > 0) { amount = n; break }
+      }
+    }
+
     if (amount <= 0) continue
 
     results.push({
@@ -165,3 +174,34 @@ export function parseCSV(buffer: Buffer): ParsedTransaction[] {
 
   return parseNoHeaderFormat(noHeader.data)
 }
+
+export function detectBillingMonth(buffer: Buffer): string | null {
+  const enc = detectEncoding(buffer)
+  const text = enc === "shift_jis" ? Iconv.decode(buffer, "shift_jis") : buffer.toString("utf8")
+
+  // 先頭10行程度を調べる
+  const lines = text.split(/\r?\n/).slice(0, 10)
+
+  for (const line of lines) {
+    // パターン1: "2026年05月26日お支払い分" または "2026年5月お支払い分"
+    const m1 = line.match(/(\d{4})年(\d{1,2})月(?:\d{1,2}日)?お支払い分/)
+    if (m1) {
+      return `${m1[1]}-${m1[2].padStart(2, "0")}`
+    }
+
+    // パターン2: "支払日：2026/05/26" または "お支払日 2026-05-26"
+    const m2 = line.match(/(?:支払日|引落日)[：:]?\s*(\d{4})[\/\-年](\d{1,2})[\/\-月]/)
+    if (m2) {
+      return `${m2[1]}-${m2[2].padStart(2, "0")}`
+    }
+
+    // パターン3: "2026年05月度" または "2026/05度"
+    const m3 = line.match(/(\d{4})[\/\-年](\d{1,2})月?度/)
+    if (m3) {
+      return `${m3[1]}-${m3[2].padStart(2, "0")}`
+    }
+  }
+
+  return null
+}
+

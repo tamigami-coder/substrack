@@ -12,6 +12,7 @@ import {
   User,
   Wallet,
   Upload,
+  ShieldAlert, // [ADMIN TAB - 削除時はこの行も消す]
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,10 @@ const navItems = [
   { href: "/analysis", icon: BarChart3, label: "分析" },
   { href: "/import", icon: Upload, label: "CSVインポート" },
 ]
+
+// ===== [ADMIN TAB START] 削除時: ここから [ADMIN TAB END] までを消す =====
+const adminNavItem = { href: "/admin", icon: ShieldAlert, label: "管理者" }
+// ===== [ADMIN TAB END] ====================================================
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -53,6 +58,21 @@ export function Sidebar() {
             </div>
           </Link>
         ))}
+        {/* ===== [ADMIN TAB START] 削除時: ここから [ADMIN TAB END] までを消す ===== */}
+        <Link href={adminNavItem.href}>
+          <div
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mt-2",
+              pathname === adminNavItem.href
+                ? "bg-yellow-500 text-white"
+                : "text-yellow-600 hover:bg-yellow-50 hover:text-yellow-700"
+            )}
+          >
+            <adminNavItem.icon className="h-4 w-4" />
+            {adminNavItem.label}
+          </div>
+        </Link>
+        {/* ===== [ADMIN TAB END] ===== */}
       </nav>
 
       <Separator className="my-4" />

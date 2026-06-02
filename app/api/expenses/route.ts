@@ -12,8 +12,8 @@ export async function GET(req: Request) {
 
   let dateFilter = {}
   if (year && month) {
-    const start = new Date(Number(year), Number(month) - 1, 1)
-    const end = new Date(Number(year), Number(month), 1)
+    const start = new Date(Date.UTC(Number(year), Number(month) - 1, 1))
+    const end = new Date(Date.UTC(Number(year), Number(month), 1))
     dateFilter = { date: { gte: start, lt: end } }
   }
 
@@ -30,9 +30,13 @@ export async function POST(req: Request) {
   if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await req.json()
+  const inputDate = new Date(body.date)
+  const billingDate = new Date(Date.UTC(inputDate.getUTCFullYear(), inputDate.getUTCMonth(), 1))
+
   const expense = await prisma.expense.create({
     data: {
-      date: new Date(body.date),
+      date: inputDate,
+      billingDate: billingDate,
       amount: Number(body.amount),
       merchant: body.merchant,
       category: body.category,
